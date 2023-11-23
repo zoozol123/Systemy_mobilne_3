@@ -2,13 +2,20 @@ package com.example.sytemy_mobilne_3;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Html;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -19,7 +26,7 @@ public class TaskListFragment extends Fragment {
     private RecyclerView recyclerView;
     private TaskAdapter adapter;
     public static final String KEY_EXTRA_TASK_ID = "tasklistfragment.task_id";
-
+    private boolean subtitlevisable;
 
     @Nullable
     @Override
@@ -45,24 +52,40 @@ public class TaskListFragment extends Fragment {
         } else {
             adapter.notifyDataSetChanged();
         }
+        //updateSubtitle();
     }
 
     private class TaskHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private TextView nameTextView, dateTextView;
+        private ImageView iconImageView;
+        private CheckBox checkBox;
         private Task task;
 
         public TaskHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.list_item_task, parent, false));
             itemView.setOnClickListener(this);
-
+            checkBox=itemView.findViewById(R.id.checkBox);
+            iconImageView= itemView.findViewById(R.id.imageView);
             nameTextView = itemView.findViewById(R.id.task_item_name);
             dateTextView = itemView.findViewById(R.id.task_item_date);
         }
 
         public void bind(Task task) {
             this.task = task;
-            nameTextView.setText(task.getName());
+            String taskName = task.getName();
+            if (task.isDone()) {
+                nameTextView.setText(Html.fromHtml("<s>" + (taskName) + "</s>"));
+            } else {
+                nameTextView.setText(taskName);
+            }
             dateTextView.setText(task.getDate().toString());
+            checkBox.setChecked(task.isDone());
+
+            if( task.getCategory().equals(Category.HOME)){
+                iconImageView.setImageResource(R.drawable.ic_house);
+            } else {
+                iconImageView.setImageResource(R.drawable.ic_university);
+            }
         }
 
         @Override
@@ -71,6 +94,7 @@ public class TaskListFragment extends Fragment {
             intent.putExtra(KEY_EXTRA_TASK_ID, task.getId());
             startActivity(intent);
         }
+        public CheckBox getCheckBox() { return checkBox; }
     }
 
     private class TaskAdapter extends RecyclerView.Adapter<TaskHolder> {
@@ -91,11 +115,72 @@ public class TaskListFragment extends Fragment {
         public void onBindViewHolder(@NonNull TaskHolder holder, int position) {
             Task task = tasks.get(position);
             holder.bind(task);
+            CheckBox checkBox=holder.getCheckBox();
+            checkBox.setChecked(task.isDone());
+
+            checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                task.setDone(isChecked);
+            });
         }
 
         @Override
         public int getItemCount() {
             return tasks.size();
         }
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_task_menu, menu);
+        MenuItem subtitleitem = menu.findItem(R.id.show_subtitle);
+        if(subtitlevisable){
+            subtitleitem.setTitle(R.string.hide_subtitle);
+
+        }else{
+            subtitleitem.setTitle(R.string.show_subtitle);
+        }
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        if (item.getItemId()== R.id.new_task) {
+            Task task = new Task();
+            TaskStorage.getInstance().addTask(task);
+            Intent intent = new Intent(getActivity(), MainActivity.class);
+            intent.putExtra(TaskListFragment.KEY_EXTRA_TASK_ID, task.getId());
+            startActivity(intent);
+            return true;
+        }else if(item.getItemId() == R.id.show_subtitle){
+            subtitlevisable = !subtitlevisable;
+            getActivity().invalidateOptionsMenu();
+            updateSubtitle();
+            return true;
+        }
+        else{
+            return super.onOptionsItemSelected(item);
+        }
+
+    }
+    public void updateSubtitle(){
+        TaskStorage taskStorage=TaskStorage.getInstance();
+        List<Task>tasks=taskStorage.getTasks();
+        int count=0;
+        for(Task task:tasks){
+            if(!task.isDone()){
+                count++;
+            }
+        }
+        String subtitle=getString(R.string.subtitle_format,count);
+        if(!subtitlevisable){
+            subtitle=null;
+        }
+        AppCompatActivity appCompatActivity=(AppCompatActivity) getActivity();
+        appCompatActivity.getSupportActionBar().setSubtitle(subtitle);
     }
 }

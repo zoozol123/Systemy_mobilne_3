@@ -4,5 +4,9 @@
     <string name="name_hint">Wpisz nazwę zdania</string>
     <string name="details_label">Szczegóły</string>
     <string name="done_label">Wykonane</string>
+    <string name="task_add_new">Nowe zdanie</string>
+    <string name="show_subtitle">Pokaż podtytuł</string>
+    <string name="hide_subtitle">Ukryj podtytuł</string>
+    <string name="subtitle_format">%1$d zadań</string>
 
 </resources>
